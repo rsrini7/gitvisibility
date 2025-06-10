@@ -24,7 +24,7 @@ const Hero = () => {
       </svg>
       <h1 className="relative inline-block w-full text-center text-5xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:pt-5 lg:text-7xl">
         Repository to <br />
-        diagram&nbsp;
+        Code Map&nbsp;
       </h1>
       <svg
         className="bottom-0 right-0 hidden h-auto w-16 flex-shrink-0 -translate-x-10 translate-y-10 md:block md:translate-y-20 lg:absolute lg:w-20 lg:-translate-x-12 lg:translate-y-4"

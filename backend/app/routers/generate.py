@@ -98,17 +98,44 @@ def process_click_events(diagram: str, username: str, repo: str, branch: str) ->
 
     def replace_path(match):
         # Extract the path from the click event
-        path = match.group(2).strip("\"'")
+        raw_path = match.group(2).strip("\"'")
+        
+        # Remove fragment if present (e.g., path/to/file.py#functionName)
+        path_without_fragment = raw_path.split("#")[0]
 
         # Determine if path is likely a file (has extension) or directory
-        is_file = "." in path.split("/")[-1]
+        is_file = "." in path_without_fragment.split("/")[-1]
 
         # Construct GitHub URL
         base_url = f"https://github.com/{username}/{repo}"
         path_type = "blob" if is_file else "tree"
-        full_url = f"{base_url}/{path_type}/{branch}/{path}"
+        full_url = f"{base_url}/{path_type}/{branch}/{path_without_fragment}"
 
-        # Return the full click event with the new URL
+        # Return the full click event with the new URL, keeping original raw_path for the click parameter if needed by Mermaid/JS
+        # For now, the instruction implies the LLM generates the click unique_id and the path parameter.
+        # The path parameter itself should be the one that can include #fragment if the LLM generates it that way.
+        # However, the URL formed for GitHub navigation must NOT include the #fragment.
+        # The prompt for SYSTEM_THIRD_PROMPT indicates click events like: `click NodeID_FunctionX "path/to/file.ext#FunctionX"`
+        # So, the raw_path (which includes #fragment) should be used in the click parameter passed to Mermaid.
+        # The modification here is only for the URL generation part.
+        # The problem statement: "URL should always point to the file itself, not a fragment"
+        # "if path is src/utils/api.ts#fetchData, the generated GitHub URL should still be for src/utils/api.ts."
+        # This means the `full_url` should use `path_without_fragment`.
+        # The actual click string in mermaid should still use `raw_path` if that's what the LLM is told to make.
+        # The current regex `r'click ([^\s"]+)\s+"([^"]+)"'` captures the node ID and the path argument.
+        # The `SYSTEM_THIRD_PROMPT` asks the LLM to generate `click NodeID "path/to/file#FuncName"`.
+        # So `match.group(2)` is `path/to/file#FuncName`. This `raw_path` is used as the click parameter.
+        # The `full_url` used for actual navigation is what we are fixing.
+        # The line `return f'click {match.group(1)} "{full_url}"'` was in the original code.
+        # This would change the click parameter in Mermaid to not have the fragment.
+        # If the fragment is needed for client-side JS later, this would be wrong.
+        # Re-reading: "The URL should always point to the file itself... For example, if path is src/utils/api.ts#fetchData, the generated GitHub URL should still be for src/utils/api.ts."
+        # This implies that the string that `process_click_events` *outputs* should have the full_url (without fragment) as the click argument.
+        # This seems correct, as the purpose of this function is to make GitHub clickable links.
+        # Client-side JS that might use the fragment would have to be handled differently if it relied on this specific click parameter.
+        # For now, the goal is to make the GitHub link correct.
+
+        return f'click {match.group(1)} "{full_url}"'
         return f'click {match.group(1)} "{full_url}"'
 
     # Match click events: click ComponentName "path/to/something"
@@ -185,7 +212,6 @@ async def generate_stream(request: Request, body: ApiRequest):
                         "instructions": body.instructions,
                     },
                     api_key=body.api_key,
-                    # reasoning_effort="medium",
                 ):
                     explanation += chunk
                     yield f"data: {json.dumps({'status': 'explanation_chunk', 'chunk': chunk})}\n\n"
@@ -203,7 +229,6 @@ async def generate_stream(request: Request, body: ApiRequest):
                     system_prompt=SYSTEM_SECOND_PROMPT,
                     data={"explanation": explanation, "file_tree": file_tree},
                     api_key=body.api_key,
-                    # reasoning_effort="low",
                 ):
                     full_second_response += chunk
                     yield f"data: {json.dumps({'status': 'mapping_chunk', 'chunk': chunk})}\n\n"
@@ -228,10 +253,11 @@ async def generate_stream(request: Request, body: ApiRequest):
                     data={
                         "explanation": explanation,
                         "component_mapping": component_mapping_text,
+                        "file_tree": file_tree, # Added for context
+                        "readme": readme, # Added for context
                         "instructions": body.instructions,
                     },
                     api_key=body.api_key,
-                    # reasoning_effort="low",
                 ):
                     mermaid_code += chunk
                     yield f"data: {json.dumps({'status': 'diagram_chunk', 'chunk': chunk})}\n\n"

@@ -108,7 +108,7 @@ export default function MainCard({
             type="submit"
             className="border-[3px] border-black bg-purple-400 p-4 px-4 text-base text-black shadow-[4px_4px_0_0_#000000] transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5 hover:transform hover:bg-purple-400 sm:p-6 sm:px-6 sm:text-lg"
           >
-            Diagram
+            Map Code
           </Button>
         </div>
 
@@ -137,7 +137,7 @@ export default function MainCard({
                             : "bg-purple-300 hover:bg-purple-400"
                         }`}
                       >
-                        <span>Customize Diagram</span>
+                        <span>Customize Map</span>
                         {activeDropdown === "customize" ? (
                           <ChevronUp size={20} />
                         ) : (
@@ -159,7 +159,7 @@ export default function MainCard({
                             : "bg-purple-300 hover:bg-purple-400"
                         }`}
                       >
-                        <span>Export Diagram</span>
+                        <span>Export Map</span>
                         {activeDropdown === "export" ? (
                           <ChevronUp size={20} />
                         ) : (

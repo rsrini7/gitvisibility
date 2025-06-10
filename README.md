@@ -1,20 +1,20 @@
-[![Image](./docs/readme_img.png "GitDiagram Front Page")](https://gitdiagram.com/)
+[![Image](./docs/readme_img.png "GitCodeMap Front Page")](https://gitdiagram.com/)
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 [![Kofi](https://img.shields.io/badge/Kofi-F16061.svg?logo=ko-fi&logoColor=white)](https://ko-fi.com/ahmedkhaleel2004)
 
-# GitDiagram
+# GitCodeMap
 
-Turn any GitHub repository into an interactive diagram for visualization in seconds.
+Turn any GitHub repository into an interactive code map for visualization in seconds.
 
 You can also replace `hub` with `diagram` in any Github URL to access its diagram.
 
 ## 🚀 Features
 
-- 👀 **Instant Visualization**: Convert any GitHub repository structure into a system design / architecture diagram
-- 🎨 **Interactivity**: Click on components to navigate directly to source files and relevant directories
-- ⚡ **Fast Generation**: Powered by OpenRouter for quick and accurate diagrams
-- 🔄 **Customization**: Modify and regenerate diagrams with custom instructions
+- 👀 **Instant Code Mapping**: Convert any GitHub repository into a detailed code map showing files, functions, classes, and their relationships.
+- 🎨 **Interactivity**: Click on components to navigate directly to source files and relevant directories/code elements.
+- ⚡ **Fast Generation**: Powered by OpenRouter for quick and accurate code maps.
+- 🔄 **Customization**: Modify and regenerate code maps with custom instructions.
 - 🌐 **API Access**: Public API available for integration (WIP)
 
 ## ⚙️ Tech Stack
@@ -31,11 +31,11 @@ You can also replace `hub` with `diagram` in any Github URL to access its diagra
 
 I created this because I wanted to contribute to open-source projects but quickly realized their codebases are too massive for me to dig through manually, so this helps me get started - but it's definitely got many more use cases!
 
-Given any public (or private!) GitHub repository it generates diagrams in Mermaid.js with OpenRouter! (Previously Claude 3.5 Sonnet)
+Given any public (or private!) GitHub repository it generates detailed code maps in Mermaid.js with OpenRouter! (Previously Claude 3.5 Sonnet)
 
 I extract information from the file tree and README for details and interactivity (you can click components to be taken to relevant files and directories)
 
-Most of what you might call the "processing" of this app is done with prompt engineering - see `/backend/app/prompts.py`. This basically extracts and pipelines data and analysis for a larger action workflow, ending in the diagram code.
+Most of what you might call the "processing" of this app is done with prompt engineering - see `/backend/app/prompts.py`. This basically extracts and pipelines data and analysis for a larger action workflow, ending in the code map (Mermaid.js).
 
 ## 🔒 How to diagram private repositories
 

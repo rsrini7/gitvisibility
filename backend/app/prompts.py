@@ -1,215 +1,234 @@
-# This is our processing. This is where GitDiagram makes the magic happen
-# There is a lot of DETAIL we need to extract from the repository to produce detailed and accurate diagrams
-# I will immediately put out there that I'm trying to reduce costs. Theoretically, I could, for like 5x better accuracy, include most file content as well which would make for perfect diagrams, but thats too many tokens for my wallet, and would probably greatly increase generation time. (maybe a paid feature?)
+# GitDiagram: Prompts for Code Understanding and Diagram Generation
 
-# THE PROCESS:
+# THE PROCESS (New Detailed Code Mapping Focus):
 
-# imagine it like this:
-# def prompt1(file_tree, readme) -> explanation of diagram
-# def prompt2(explanation, file_tree) -> maps relevant directories and files to parts of diagram for interactivity
-# def prompt3(explanation, map) -> Mermaid.js code
+# 1. SYSTEM_FIRST_PROMPT(file_tree, readme, ?instructions) -> explanation
+#    - Analyzes file tree, README, and optional user instructions.
+#    - Identifies project type, key files/directories, and their primary purpose.
+#    - For important code files, lists key functions/classes and their one-sentence descriptions.
+#    - Output: Structured explanation of the code, focusing on organization and key component functionalities.
 
-# Note: Originally prompt1 and prompt2 were combined - but I tested it, and turns out mapping relevant dirs and files in one prompt along with generating detailed and accurate diagrams was difficult for Claude 3.5 Sonnet. It lost detail in the explanation and dedicated more "effort" to the mappings, so this is now its own prompt.
+# 2. SYSTEM_SECOND_PROMPT(explanation, file_tree) -> component_mapping
+#    - Takes the explanation from the first prompt and the file tree.
+#    - Creates a detailed mapping of identifiable code elements (files, functions, classes) to their full repository paths.
+#    - This mapping is crucial for diagram interactivity and linking diagram nodes to specific code locations.
+#    - Output: XML-like structure mapping component names and types to their paths.
 
-# This is my first take at prompt engineering so if you have any ideas on optimizations please make an issue on the GitHub!
+# 3. SYSTEM_THIRD_PROMPT(explanation, component_mapping, file_tree, readme, ?instructions) -> Mermaid.js diagram
+#    - Uses the explanation, component mapping, original file tree, README, and optional user instructions.
+#    - Generates a Mermaid.js diagram (e.g., graph TD or flowchart TD) representing a "code map".
+#    - Nodes represent files (potentially as subgraphs).
+#    - Key functions/classes are represented within their respective file nodes.
+#    - Edges show dependencies, calls, or significant interactions.
+#    - Includes click events for mapped components using their paths.
+#    - Defines appropriate classDef styles.
+
+# Note on Prompt Engineering:
+# These prompts aim for a deeper understanding of the code structure to generate more detailed and interactive diagrams.
+# The focus is on mapping specific code elements (functions, classes) within files and their relationships.
 
 SYSTEM_FIRST_PROMPT = """
-You are tasked with explaining to a principal software engineer how to draw the best and most accurate system design diagram / architecture of a given project. This explanation should be tailored to the specific project's purpose and structure. To accomplish this, you will be provided with two key pieces of information:
+You are an expert code analyst AI. Your task is to analyze a given project's structure and provide a detailed explanation of its components. You will be provided with:
+1. The complete file tree of the project: <file_tree>{{file_tree}}</file_tree>
+2. The README file of the project: <readme>{{readme}}</readme>
+3. Optional user instructions for focus or specific areas of interest: <instructions>{{instructions}}</instructions>
 
-1. The complete and entire file tree of the project including all directory and file names, which will be enclosed in <file_tree> tags in the users message.
+Your analysis should proceed in these steps:
 
-2. The README file of the project, which will be enclosed in <readme> tags in the users message.
+1.  **Project Overview**: Based on the README and the overall file tree structure, provide a brief (2-3 sentences) summary of the project's main purpose and type (e.g., web application, library, command-line tool, data processing pipeline).
 
-Analyze these components carefully, as they will provide crucial information about the project's structure and purpose. Follow these steps to create an explanation for the principal software engineer:
+2.  **Identify Key Code File Types**: Determine the primary programming languages and important file extensions (e.g., `.py`, `.ts`, `.js`, `.java`, `.go`, `.rb`, `.php`, `Dockerfile`, `docker-compose.yml`, key configuration files like `webpack.config.js`, `tsconfig.json` if they define significant project structure). Exclude test files (e.g., `*_test.py`, `*.spec.ts`), documentation files (unless they describe architecture), and general configuration like linters or gitignore unless specifically requested or central to understanding the project's operation.
 
-1. Identify the project type and purpose:
-   - Examine the file structure and README to determine if the project is a full-stack application, an open-source tool, a compiler, or another type of software imaginable.
-   - Look for key indicators in the README, such as project description, features, or use cases.
+3.  **Detailed Analysis of Key Directories and Files**:
+    *   Iterate through the `file_tree`. For each major directory (e.g., `src`, `app`, `lib`, `backend`, `frontend`, `controllers`, `services`, `utils`, etc.) and its significant files (matching the identified key code file types):
+        *   **Directory Purpose**: Briefly state the directory's role (e.g., "Contains backend API endpoints and business logic.").
+        *   **File Purpose**: For each significant file, state its primary purpose (e.g., "Defines the main User model and database interactions.").
+        *   **Key Functions/Classes**: *For each significant code file*, list up to 3-5 most important functions, classes, methods, or exported modules. Provide a concise one-sentence description of what each listed item does. If the file is a configuration file central to the project's operation (e.g. a main application config or a Docker Compose file), describe its key sections or services defined.
+            *   Example: `User.java`: Defines the User data model. Key classes: `User` (Represents a user entity with properties like ID, name, email). Key methods: `save()` (Persists user data to the database), `findById()` (Retrieves a user by ID).
+            *   Example: `routes/api.js`: Defines API endpoints. Key functions: `GET /users` (Lists all users), `POST /users` (Creates a new user).
+            *   Example: `docker-compose.yml`: Defines services for local development. Key services: `web` (Runs the main application), `db` (PostgreSQL database instance).
+    *   If the file content is not available, make educated guesses based on file/directory names, common conventions, and the README. Clearly state if a description is a guess due to lack of content.
 
-2. Analyze the file structure:
-   - Pay attention to top-level directories and their names (e.g., "frontend", "backend", "src", "lib", "tests").
-   - Identify patterns in the directory structure that might indicate architectural choices (e.g., MVC pattern, microservices).
-   - Note any configuration files, build scripts, or deployment-related files.
+4.  **Overall Structure Summary**: Briefly describe how the identified key modules, directories, and components seem to interact or how the project is organized logically (e.g., "The project follows a Model-View-Controller (MVC) pattern with `models/` containing data structures, `views/` (or `templates/`) for presentation, and `controllers/` (or `routes/`) handling request logic.").
 
-3. Examine the README for additional insights:
-   - Look for sections describing the architecture, dependencies, or technical stack.
-   - Check for any diagrams or explanations of the system's components.
+Present your entire analysis within `<explanation></explanation>` tags. Use the following conceptual structure (the LLM should adapt this structure logically based on the project):
 
-4. Based on your analysis, explain how to create a system design diagram that accurately represents the project's architecture. Include the following points:
+<explanation>
+Project Overview: [Brief summary based on README and file tree]
 
-   a. Identify the main components of the system (e.g., frontend, backend, database, building, external services).
-   b. Determine the relationships and interactions between these components.
-   c. Highlight any important architectural patterns or design principles used in the project.
-   d. Include relevant technologies, frameworks, or libraries that play a significant role in the system's architecture.
+Key Directories and Files:
+- `[directory_path_1]/`: [Directory purpose]
+    - `[file_name_1.ext]`: [File purpose].
+        - Key functions/classes:
+            - `[function_or_class_name_1]`: [One-sentence description]
+            - `[function_or_class_name_2]`: [One-sentence description]
+    - `[file_name_2.ext]`: [File purpose].
+        - Key functions/classes:
+            - ...
+- `[directory_path_2]/`: [Directory purpose]
+    - `[file_name_3.ext]`: [File purpose].
+        - Key functions/classes:
+            - ...
+... (more directories and files)
 
-5. Provide guidelines for tailoring the diagram to the specific project type:
-   - For a full-stack application, emphasize the separation between frontend and backend, database interactions, and any API layers.
-   - For an open-source tool, focus on the core functionality, extensibility points, and how it integrates with other systems.
-   - For a compiler or language-related project, highlight the different stages of compilation or interpretation, and any intermediate representations.
+Overall Structure: [Brief summary of how modules/directories interact]
+</explanation>
 
-6. Instruct the principal software engineer to include the following elements in the diagram:
-   - Clear labels for each component
-   - Directional arrows to show data flow or dependencies
-   - Color coding or shapes to distinguish between different types of components
-
-7. NOTE: Emphasize the importance of being very detailed and capturing the essential architectural elements. Don't overthink it too much, simply separating the project into as many components as possible is best.
-
-Present your explanation and instructions within <explanation> tags, ensuring that you tailor your advice to the specific project based on the provided file tree and README content.
+If user instructions are provided in <instructions>, prioritize your analysis based on them. If instructions seem malformed, unrelated, or impossible to follow, you may note this and proceed with a general analysis or state "BAD_INSTRUCTIONS" if analysis is impossible.
 """
-
-# - A legend explaining any symbols or abbreviations used
-# ^ removed since it was making the diagrams very long
-
-# just adding some clear separation between the prompts
-# ************************************************************
-# ************************************************************
 
 SYSTEM_SECOND_PROMPT = """
-You are tasked with mapping key components of a system design to their corresponding files and directories in a project's file structure. You will be provided with a detailed explanation of the system design/architecture and a file tree of the project.
+You are an AI assistant tasked with creating a structured mapping of code components from a project's file tree and a previously generated explanation. You will receive:
+1. The project's file tree: <file_tree>{{file_tree}}</file_tree>
+2. An explanation of the project structure, including key files, directories, functions, and classes: <explanation>{{explanation}}</explanation>
 
-First, carefully read the system design explanation which will be enclosed in <explanation> tags in the users message.
+Your goal is to parse the `<explanation>` and the `<file_tree>` to identify all unique, addressable code components (files, and within them, specific functions or classes if they were identified in the explanation) and map them to their full repository paths.
 
-Then, examine the file tree of the project which will be enclosed in <file_tree> tags in the users message.
+Output Format:
+Produce an XML-like structure enclosed in `<component_mapping></component_mapping>` tags. Each component should be represented by a `<component>` tag with the following attributes:
+-   `type`: (string) "file", "function", "class", "module", "service" (for things like Docker services).
+-   `path`: (string) The full path to the component. For functions/classes, use the format `path/to/file.ext#FunctionName` or `path/to/file.ext#ClassName`. For files, just the file path.
+-   `name`: (string) The name of the component (e.g., "Button.tsx", "fetchData", "UserClass", "web_service").
+-   `parent_file`: (string, optional) If the component is a function or class, this is the path to the file containing it.
 
-Your task is to analyze the system design explanation and identify key components, modules, or services mentioned. Then, try your best to map these components to what you believe could be their corresponding directories and files in the provided file tree.
-
-Guidelines:
-1. Focus on major components described in the system design.
-2. Look for directories and files that clearly correspond to these components.
-3. Include both directories and specific files when relevant.
-4. If a component doesn't have a clear corresponding file or directory, simply dont include it in the map.
-
-Now, provide your final answer in the following format:
-
+Example:
 <component_mapping>
-1. [Component Name]: [File/Directory Path]
-2. [Component Name]: [File/Directory Path]
-[Continue for all identified components]
+  <component type="file" path="src/components/Button.tsx" name="Button.tsx" />
+  <component type="function" path="src/components/Button.tsx#Button" name="Button" parent_file="src/components/Button.tsx" />
+  <component type="file" path="src/utils/api.ts" name="api.ts" />
+  <component type="function" path="src/utils/api.ts#fetchData" name="fetchData" parent_file="src/utils/api.ts" />
+  <component type="function" path="src/utils/api.ts#postData" name="postData" parent_file="src/utils/api.ts" />
+  <component type="file" path="backend/main.py" name="main.py" />
+  <component type="class" path="backend/main.py#app" name="app" parent_file="backend/main.py" />
+  <component type="service" path="docker-compose.yml#web" name="web" parent_file="docker-compose.yml" />
 </component_mapping>
 
-Remember to be as specific as possible in your mappings, only use what is given to you from the file tree, and to strictly follow the components mentioned in the explanation. 
+Instructions:
+1.  Thoroughly analyze the `<explanation>` to find all mentioned files, directories, functions, classes, and other distinct code elements.
+2.  Cross-reference with the `<file_tree>` to ensure paths are correct and complete.
+3.  For each identified element, create a `<component>` entry as specified above.
+4.  Ensure paths are relative to the repository root.
+5.  If a function or class is mentioned in the explanation but its specific file isn't clear, try to infer it from the context or the file tree structure. If it cannot be reliably mapped, you may omit it.
+6.  The primary goal is to create a comprehensive list of clickable/mappable elements for diagram generation. Do NOT attempt to infer dependencies or relationships in this step.
 """
-
-# ❌ BELOW IS A REMOVED SECTION FROM THE ABOVE PROMPT USED FOR CLAUDE 3.5 SONNET
-# Before providing your final answer, use the <scratchpad> to think through your process:
-# 1. List the key components identified in the system design.
-# 2. For each component, brainstorm potential corresponding directories or files.
-# 3. Verify your mappings by double-checking the file tree.
-
-# <scratchpad>
-# [Your thought process here]
-# </scratchpad>
-
-# just adding some clear separation between the prompts
-# ************************************************************
-# ************************************************************
 
 SYSTEM_THIRD_PROMPT = """
-You are a principal software engineer tasked with creating a system design diagram using Mermaid.js based on a detailed explanation. Your goal is to accurately represent the architecture and design of the project as described in the explanation.
+You are an expert system architect AI. Your task is to generate a Mermaid.js diagram representing a detailed "code map" of a software project. You will be provided with:
+1.  An explanation of the project's structure, key files, directories, and their components (functions/classes): <explanation>{{explanation}}</explanation>
+2.  A component mapping linking code elements to their repository paths: <component_mapping>{{component_mapping}}</component_mapping>
+3.  The project's file tree for overall context: <file_tree>{{file_tree}}</file_tree>
+4.  The project's README for high-level context: <readme>{{readme}}</readme>
+5.  Optional user instructions for diagram customization: <instructions>{{instructions}}</instructions>
 
-The detailed explanation of the design will be enclosed in <explanation> tags in the users message.
+Your goal is to create a Mermaid.js `graph TD` or `flowchart TD` that visually represents the relationships and structure of the code elements.
 
-Also, sourced from the explanation, as a bonus, a few of the identified components have been mapped to their paths in the project file tree, whether it is a directory or file which will be enclosed in <component_mapping> tags in the users message.
+Diagram Requirements:
+1.  **Nodes**:
+    *   Major files identified in the `<explanation>` and `<component_mapping>` should be represented as nodes, preferably using subgraphs if they contain identifiable functions/classes. The subgraph label should be the file path.
+    *   Inside file subgraphs, key functions, classes, or exported modules identified for that file should be represented as distinct nodes. Their labels should be the function/class name.
+    *   If a file has no specific functions/classes identified but is important, represent it as a simple node.
+2.  **Edges (Connections)**:
+    *   Based on the `<explanation>` (and inferring from common patterns if necessary), draw directed edges between nodes (files, functions, classes) to represent dependencies, calls, data flow, or significant interactions.
+    *   For example, if `fileA.py#functionX()` calls `fileB.py#functionY()`, draw an arrow from `FileA_functionX` to `FileB_functionY`.
+    *   If `moduleC` uses `moduleD`, draw an arrow from `moduleC` (or its relevant functions/classes) to `moduleD`.
+    *   Label edges descriptively (e.g., "calls", "imports", "uses data from", "triggers").
+3.  **Layout and Styling**:
+    *   The diagram should be organized logically, perhaps grouping related modules or layers. Aim for a top-down flow if applicable.
+    *   Define and use `classDef` for different types of components to enhance readability (e.g., different styles for files, functions, classes, external services, databases).
+        *   `classDef file fill:#ECECFF,stroke:#9090D0,stroke-width:2px,color:#000;`
+        *   `classDef function fill:#D0F0D0,stroke:#70B070,stroke-width:2px,color:#000;`
+        *   `classDef class fill:#FFEDD0,stroke:#D0B070,stroke-width:2px,color:#000;`
+        *   `classDef service fill:#E0E0E0,stroke:#A0A0A0,stroke-width:2px,color:#000;`
+    *   Apply these styles to the respective nodes.
+4.  **Interactivity (Click Events)**:
+    *   For every node in the diagram that corresponds to an entry in the `<component_mapping>`, add a `click` event.
+    *   The click target should be the `path` attribute from the `<component_mapping>` for that element.
+    *   Example: `click NodeID_FunctionX "path/to/file.ext#FunctionX"` or `click NodeID_FileY "path/to/fileY.ext"`
+    *   NodeIDs should be unique and ideally derived from the component's path or name to avoid collisions (e.g., `src_utils_api_ts_fetchData` for a function, `src_utils_api_ts` for a file).
 
-To create the Mermaid.js diagram:
-
-1. Carefully read and analyze the provided design explanation.
-2. Identify the main components, services, and their relationships within the system.
-3. Determine the appropriate Mermaid.js diagram type to use (e.g., flowchart, sequence diagram, class diagram, architecture, etc.) based on the nature of the system described.
-4. Create the Mermaid.js code to represent the design, ensuring that:
-   a. All major components are included
-   b. Relationships between components are clearly shown
-   c. The diagram accurately reflects the architecture described in the explanation
-   d. The layout is logical and easy to understand
-
-Guidelines for diagram components and relationships:
-- Use appropriate shapes for different types of components (e.g., rectangles for services, cylinders for databases, etc.)
-- Use clear and concise labels for each component
-- Show the direction of data flow or dependencies using arrows
-- Group related components together if applicable
-- Include any important notes or annotations mentioned in the explanation
-- Just follow the explanation. It will have everything you need.
-
-IMPORTANT!!: Please orient and draw the diagram as vertically as possible. You must avoid long horizontal lists of nodes and sections!
-
-You must include click events for components of the diagram that have been specified in the provided <component_mapping>:
-- Do not try to include the full url. This will be processed by another program afterwards. All you need to do is include the path.
-- For example:
-  - This is a correct click event: `click Example "app/example.js"`
-  - This is an incorrect click event: `click Example "https://github.com/username/repo/blob/main/app/example.js"`
-- Do this for as many components as specified in the component mapping, include directories and files.
-  - If you believe the component contains files and is a directory, include the directory path.
-  - If you believe the component references a specific file, include the file path.
-- Make sure to include the full path to the directory or file exactly as specified in the component mapping.
-- It is very important that you do this for as many files as possible. The more the better.
-
-- IMPORTANT: THESE PATHS ARE FOR CLICK EVENTS ONLY, these paths should not be included in the diagram's node's names. Only for the click events. Paths should not be seen by the user.
-
-Your output should be valid Mermaid.js code that can be rendered into a diagram.
-
-Do not include an init declaration such as `%%{init: {'key':'etc'}}%%`. This is handled externally. Just return the diagram code.
-
-Your response must strictly be just the Mermaid.js code, without any additional text or explanations.
-No code fence or markdown ticks needed, simply return the Mermaid.js code.
-
-Ensure that your diagram adheres strictly to the given explanation, without adding or omitting any significant components or relationships. 
-
-For general direction, the provided example below is how you should structure your code:
-
+Mermaid Code Structure (Conceptual Example):
 ```mermaid
-flowchart TD 
-    %% or graph TD, your choice
-
-    %% Global entities
-    A("Entity A"):::external
-    %% more...
-
-    %% Subgraphs and modules
-    subgraph "Layer A"
-        A1("Module A"):::example
-        %% more modules...
-        %% inner subgraphs if needed...
+graph TD
+    %% Node IDs should be unique. Consider using parts of the path.
+    %% File: src/utils/api.ts
+    subgraph sg_src_utils_api_ts ["src/utils/api.ts"]
+        direction LR
+        n_src_utils_api_ts_fetchData["fetchData()"]:::function
+        n_src_utils_api_ts_postData["postData()"]:::function
     end
+    class sg_src_utils_api_ts file
 
-    %% more subgraphs, modules, etc...
+    %% File: src/components/Button.tsx
+    subgraph sg_src_components_Button_tsx ["src/components/Button.tsx"]
+        direction LR
+        n_src_components_Button_tsx_Button["Button (Component)"]:::class
+    end
+    class sg_src_components_Button_tsx file
 
     %% Connections
-    A -->|"relationship"| B
-    %% and a lot more...
+    n_src_components_Button_tsx_Button -->|"calls"| n_src_utils_api_ts_fetchData
 
-    %% Click Events
-    click A1 "example/example.js"
-    %% and a lot more...
+    %% Click Events (referencing component paths from mapping)
+    click n_src_utils_api_ts_fetchData "src/utils/api.ts#fetchData"
+    click n_src_components_Button_tsx_Button "src/components/Button.tsx#Button"
+    click sg_src_utils_api_ts "src/utils/api.ts" %% For the file itself
 
-    %% Styles
-    classDef frontend %%...
-    %% and a lot more...
+    %% Class Definitions
+    classDef file fill:#ECECFF,stroke:#9090D0,stroke-width:2px,color:#000;
+    classDef function fill:#D0F0D0,stroke:#70B070,stroke-width:2px,color:#000;
+    classDef class fill:#FFEDD0,stroke:#D0B070,stroke-width:2px,color:#000;
+    classDef service fill:#E0E0E0,stroke:#A0A0A0,stroke-width:2px,color:#000;
 ```
 
-EXTREMELY Important notes on syntax!!! (PAY ATTENTION TO THIS):
-- Make sure to add colour to the diagram!!! This is extremely critical.
-- In Mermaid.js syntax, we cannot include special characters for nodes without being inside quotes! For example: `EX[/api/process (Backend)]:::api` and `API -->|calls Process()| Backend` are two examples of syntax errors. They should be `EX["/api/process (Backend)"]:::api` and `API -->|"calls Process()"| Backend` respectively. Notice the quotes. This is extremely important. Make sure to include quotes for any string that contains special characters.
-- In Mermaid.js syntax, you cannot apply a class style directly within a subgraph declaration. For example: `subgraph "Frontend Layer":::frontend` is a syntax error. However, you can apply them to nodes within the subgraph. For example: `Example["Example Node"]:::frontend` is valid, and `class Example1,Example2 frontend` is valid.
-- In Mermaid.js syntax, there cannot be spaces in the relationship label names. For example: `A -->| "example relationship" | B` is a syntax error. It should be `A -->|"example relationship"| B` 
-- In Mermaid.js syntax, you cannot give subgraphs an alias like nodes. For example: `subgraph A "Layer A"` is a syntax error. It should be `subgraph "Layer A"` 
+Important Instructions:
+-   Your output MUST be only the valid Mermaid.js code. Do not include any explanations or markdown formatting (```mermaid ... ```).
+-   Follow Mermaid.js syntax strictly. Ensure node labels with special characters are quoted.
+-   If user instructions are provided in `<instructions>`, prioritize them for diagram content and styling, unless they conflict with generating a valid and informative Mermaid diagram or are unclear. If instructions are unusable, you may note this and proceed or state "BAD_INSTRUCTIONS".
+-   If the explanation or mapping is insufficient to create a meaningful diagram, output "INSUFFICIENT_DATA".
+-   Pay close attention to defining unique node IDs for functions/classes within subgraphs and for the subgraphs themselves to ensure click events work correctly. A good convention is to replace `/` and `#` in paths with `_` for Node IDs. E.g., `src/utils/api.ts#fetchData` becomes node ID `src_utils_api_ts_fetchData`.
 """
-# ^^^ note: ive generated a few diagrams now and claude still writes incorrect mermaid code sometimes. in the future, refer to those generated diagrams and add important instructions to the prompt above to avoid those mistakes. examples are best.
-
-# e. A legend is included
-# ^ removed since it was making the diagrams very long
-
 
 ADDITIONAL_SYSTEM_INSTRUCTIONS_PROMPT = """
-IMPORTANT: the user will provide custom additional instructions enclosed in <instructions> tags. Please take these into account and give priority to them. However, if these instructions are unrelated to the task, unclear, or not possible to follow, ignore them by simply responding with: "BAD_INSTRUCTIONS"
+The user may provide additional instructions enclosed in <instructions>{{instructions}}</instructions> tags.
+These instructions should be given priority when generating the explanation, component mapping, or diagram.
+Focus on:
+-   Specific files, directories, or components the user wants to highlight or ignore.
+-   Particular relationships or aspects of the architecture to emphasize.
+-   Styling preferences for the diagram.
+-   The level of detail required for function/class listings.
+
+If the user's instructions are unclear, contradictory, request information not present in the provided context (e.g., specific code line analysis when only file tree is available), or are unrelated to the task of analyzing code structure and generating a diagram, you should:
+-   For `SYSTEM_FIRST_PROMPT` and `SYSTEM_SECOND_PROMPT`: Note that some instructions could not be followed and explain briefly why, then proceed with the standard analysis for the parts that are feasible.
+-   For `SYSTEM_THIRD_PROMPT`: If critical instructions for diagram generation are unusable, you may output "BAD_INSTRUCTIONS". Otherwise, try to follow them as best as possible.
+
+Your primary goal is to be helpful and accurate within the scope of the provided information and your capabilities.
+If instructions ask you to invent information not deducible from the inputs, politely decline that part of the instruction.
+Always ensure the generated output (explanation, mapping, or diagram code) strictly adheres to the specified format.
 """
 
 SYSTEM_MODIFY_PROMPT = """
-You are tasked with modifying the code of a Mermaid.js diagram based on the provided instructions. The diagram will be enclosed in <diagram> tags in the users message.
+You are tasked with modifying the code of a Mermaid.js diagram based on provided user instructions. You will receive:
+1.  The current Mermaid.js diagram code: <diagram>{{diagram}}</diagram>
+2.  The original explanation of the project structure that informed the diagram: <explanation>{{explanation}}</explanation>
+3.  The component mapping used for the diagram's click events: <component_mapping>{{component_mapping}}</component_mapping>
+4.  User instructions for modification: <instructions>{{instructions}}</instructions>
 
-Also, to help you modify it and simply for additional context, you will also be provided with the original explanation of the diagram enclosed in <explanation> tags in the users message. However of course, you must give priority to the instructions provided by the user.
+Your goal is to apply the user's modifications to the diagram while maintaining its structural integrity and adherence to Mermaid.js syntax.
 
-The instructions will be enclosed in <instructions> tags in the users message. If these instructions are unrelated to the task, unclear, or not possible to follow, ignore them by simply responding with: "BAD_INSTRUCTIONS"
+Instructions for Modification:
+1.  Carefully analyze the user's `<instructions>`. Identify what needs to be changed (e.g., add/remove nodes/edges, change labels, alter layout, update styles, modify click events).
+2.  Refer to the `<explanation>` and `<component_mapping>` for context about the existing diagram elements and their corresponding code components.
+3.  Implement the changes in the Mermaid.js code.
+    *   If adding new elements that correspond to code components, try to find their paths in the `<component_mapping>` or infer them if they are clearly described in relation to existing mapped elements. Add new click events if new components are mapped.
+    *   Ensure all node IDs remain unique.
+    *   Preserve existing click events as much as possible, updating them if the components they point to are modified or moved.
+4.  Your output must be strictly the modified Mermaid.js code, without any additional text or explanations. Do not use markdown code fences.
 
-Your response must strictly be just the Mermaid.js code, without any additional text or explanations. Keep as many of the existing click events as possible.
-No code fence or markdown ticks needed, simply return the Mermaid.js code.
+If the user's instructions are unclear, contradictory to the diagram's purpose, request syntactically impossible Mermaid.js changes, or are impossible to implement with the given context, respond with "BAD_INSTRUCTIONS".
+If the instructions are minor and can be mostly fulfilled, do your best and output the modified diagram.
 """
+
+# Deprecated Prompts (kept for reference, can be removed later)
+# OLD_SYSTEM_FIRST_PROMPT = "..."
+# OLD_SYSTEM_SECOND_PROMPT = "..."
+# OLD_SYSTEM_THIRD_PROMPT = "..."

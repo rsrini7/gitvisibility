@@ -1,4 +1,5 @@
 import requests
+import base64
 import jwt
 import time
 from datetime import datetime, timedelta
@@ -232,3 +233,68 @@ class GitHubService:
         data = response.json()
         readme_content = requests.get(data["download_url"]).text
         return readme_content
+
+    def get_file_content(
+        self, username: str, repo: str, filepath: str, branch: str | None = None
+    ) -> str:
+        """
+        Fetches the content of a specific file from a GitHub repository.
+
+        Args:
+            username (str): The GitHub username or organization name.
+            repo (str): The repository name.
+            filepath (str): The full path to the file within the repository.
+            branch (str | None): The branch to fetch the file from.
+                                 If None, uses the default branch.
+
+        Returns:
+            str: The decoded content of the file.
+
+        Raises:
+            ValueError: If the file is not found, or if the default branch cannot be determined.
+            Exception: For other unexpected API errors or issues decoding content.
+        """
+        actual_branch = branch
+        if not actual_branch:
+            actual_branch = self.get_default_branch(username, repo)
+            if not actual_branch:
+                # Fallback if default_branch is still None (e.g. repo not found by get_default_branch)
+                # Try common names, or raise an error if critical.
+                # For now, let's try 'main' as a common default.
+                # A more robust solution might involve checking common branches or erroring out.
+                print(f"Warning: Default branch for {username}/{repo} not found, trying 'main'.")
+                actual_branch = "main" # Or raise ValueError("Could not determine default branch.")
+
+        api_url = f"https://api.github.com/repos/{username}/{repo}/contents/{filepath}?ref={actual_branch}"
+        response = requests.get(api_url, headers=self._get_headers())
+
+        if response.status_code == 200:
+            data = response.json()
+            content_base64 = data.get("content")
+            encoding = data.get("encoding")
+
+            if not content_base64:
+                raise Exception(f"No content found for file: {filepath} in response.")
+
+            if encoding == "base64":
+                try:
+                    decoded_content = base64.b64decode(content_base64).decode("utf-8")
+                    return decoded_content
+                except Exception as e:
+                    raise Exception(f"Error decoding file content for {filepath}: {str(e)}")
+            else:
+                # If encoding is not base64, GitHub API for contents usually means it's something else (e.g. a submodule)
+                # or the content is not directly fetchable this way.
+                # For simplicity, we are assuming direct file content is base64 encoded.
+                # If other encodings are expected, this part needs more robust handling.
+                raise Exception(f"Unsupported encoding '{encoding}' for file: {filepath}. Expected 'base64'.")
+
+        elif response.status_code == 404:
+            raise ValueError(
+                f"File not found at path: {filepath} on branch {actual_branch} in {username}/{repo}. Status code: {response.status_code}"
+            )
+        else:
+            error_details = response.json().get("message", response.text)
+            raise Exception(
+                f"Failed to fetch file {filepath} from {username}/{repo} on branch {actual_branch}. Status: {response.status_code}. Details: {error_details}"
+            )

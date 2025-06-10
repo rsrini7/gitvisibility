@@ -45,7 +45,7 @@ export function Header() {
               Git
             </span>
             <span className="text-purple-600 transition-colors duration-200 hover:text-purple-500">
-              Diagram
+              CodeMap
             </span>
           </span>
         </Link>
