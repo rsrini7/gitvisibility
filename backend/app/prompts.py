@@ -22,6 +22,7 @@
 #    - Edges show dependencies, calls, or significant interactions.
 #    - Includes click events for mapped components using their paths.
 #    - Defines appropriate classDef styles.
+#    - classDef styles should not contain any keyword like class. Use classDef codeClassStyle for programming classes.
 
 # Note on Prompt Engineering:
 # These prompts aim for a deeper understanding of the code structure to generate more detailed and interactive diagrams.
@@ -135,11 +136,11 @@ Diagram Requirements:
 3.  **Layout and Styling**:
     *   The diagram should be organized logically, perhaps grouping related modules or layers. Aim for a top-down flow if applicable.
     *   Define and use `classDef` for different types of components to enhance readability (e.g., different styles for files, functions, classes, external services, databases).
-        *   `classDef file fill:#ECECFF,stroke:#9090D0,stroke-width:2px,color:#000;`
-        *   `classDef function fill:#D0F0D0,stroke:#70B070,stroke-width:2px,color:#000;`
-        *   `classDef class fill:#FFEDD0,stroke:#D0B070,stroke-width:2px,color:#000;`
-        *   `classDef service fill:#E0E0E0,stroke:#A0A0A0,stroke-width:2px,color:#000;`
-    *   Apply these styles to the respective nodes.
+        *   `classDef fileStyle fill:#ECECFF,stroke:#9090D0,stroke-width:2px,color:#000;`
+        *   `classDef functionStyle fill:#D0F0D0,stroke:#70B070,stroke-width:2px,color:#000;`
+        *   `classDef codeClassStyle fill:#FFEDD0,stroke:#D0B070,stroke-width:2px,color:#000;` /* For styling programming classes */
+        *   `classDef serviceStyle fill:#E0E0E0,stroke:#A0A0A0,stroke-width:2px,color:#000;`
+    *   Apply these styles to the respective nodes (e.g., `:::fileStyle`, `:::functionStyle`, `:::codeClassStyle`).
 4.  **Interactivity (Click Events)**:
     *   For every node in the diagram that corresponds to an entry in the `<component_mapping>`, add a `click` event.
     *   The click target should be the `path` attribute from the `<component_mapping>` for that element.
@@ -153,17 +154,17 @@ graph TD
     %% File: src/utils/api.ts
     subgraph sg_src_utils_api_ts ["src/utils/api.ts"]
         direction LR
-        n_src_utils_api_ts_fetchData["fetchData()"]:::function
-        n_src_utils_api_ts_postData["postData()"]:::function
+        n_src_utils_api_ts_fetchData["fetchData()"]:::functionStyle
+        n_src_utils_api_ts_postData["postData()"]:::functionStyle
     end
-    class sg_src_utils_api_ts file
+    class sg_src_utils_api_ts fileStyle
 
     %% File: src/components/Button.tsx
     subgraph sg_src_components_Button_tsx ["src/components/Button.tsx"]
         direction LR
-        n_src_components_Button_tsx_Button["Button (Component)"]:::class
+        n_src_components_Button_tsx_Button["Button (Component)"]:::codeClassStyle
     end
-    class sg_src_components_Button_tsx file
+    class sg_src_components_Button_tsx fileStyle
 
     %% Connections
     n_src_components_Button_tsx_Button -->|"calls"| n_src_utils_api_ts_fetchData
@@ -174,10 +175,10 @@ graph TD
     click sg_src_utils_api_ts "src/utils/api.ts" %% For the file itself
 
     %% Class Definitions
-    classDef file fill:#ECECFF,stroke:#9090D0,stroke-width:2px,color:#000;
-    classDef function fill:#D0F0D0,stroke:#70B070,stroke-width:2px,color:#000;
-    classDef class fill:#FFEDD0,stroke:#D0B070,stroke-width:2px,color:#000;
-    classDef service fill:#E0E0E0,stroke:#A0A0A0,stroke-width:2px,color:#000;
+    classDef fileStyle fill:#ECECFF,stroke:#9090D0,stroke-width:2px,color:#000;
+    classDef functionStyle fill:#D0F0D0,stroke:#70B070,stroke-width:2px,color:#000;
+    classDef codeClassStyle fill:#FFEDD0,stroke:#D0B070,stroke-width:2px,color:#000; /* For styling programming classes */
+    classDef serviceStyle fill:#E0E0E0,stroke:#A0A0A0,stroke-width:2px,color:#000;
 ```
 
 Important Instructions:
