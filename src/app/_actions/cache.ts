@@ -15,14 +15,21 @@ export async function getCachedDiagram(username: string, repo: string) {
       )
       .limit(1);
 
-    return cached[0]?.diagram ?? null;
+    if (cached[0]) {
+      return {
+        diagram: cached[0].diagram,
+        explanation: cached[0].explanation,
+        mapping: cached[0].mapping,
+      };
+    }
+    return null;
   } catch (error) {
     console.error("Error fetching cached diagram:", error);
     return null;
   }
 }
 
-export async function getCachedExplanation(username: string, repo: string) {
+export async function getCachedExplanationAndMapping(username: string, repo: string) {
   try {
     const cached = await db
       .select()
@@ -32,7 +39,7 @@ export async function getCachedExplanation(username: string, repo: string) {
       )
       .limit(1);
 
-    return cached[0]?.explanation ?? null;
+    return cached[0] ?? null;
   } catch (error) {
     console.error("Error fetching cached explanation:", error);
     return null;
@@ -44,6 +51,7 @@ export async function cacheDiagramAndExplanation(
   repo: string,
   diagram: string,
   explanation: string,
+  mapping: string,
   usedOwnKey = false,
 ) {
   try {
@@ -54,6 +62,7 @@ export async function cacheDiagramAndExplanation(
         repo,
         diagram,
         explanation,
+        mapping,
         usedOwnKey,
       })
       .onConflictDoUpdate({
@@ -61,6 +70,7 @@ export async function cacheDiagramAndExplanation(
         set: {
           diagram,
           explanation,
+          mapping,
           usedOwnKey,
           updatedAt: new Date(),
         },

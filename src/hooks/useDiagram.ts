@@ -23,9 +23,10 @@ interface StreamState {
     | "complete"
     | "error";
   message?: string;
-  explanation?: string;
-  mapping?: string;
-  diagram?: string;
+  loadingExplanation?: string;
+  loadingMapping?: string;
+  loadingDiagramText?: string;
+  finalDiagram?: string;
   error?: string;
 }
 
@@ -47,7 +48,15 @@ export function useDiagram(username: string, repo: string) {
   const [cost, setCost] = useState<string>("");
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   // const [tokenCount, setTokenCount] = useState<number>(0);
-  const [state, setState] = useState<StreamState>({ status: "idle" });
+  const [state, setState] = useState<StreamState>({
+    status: "idle",
+    loadingExplanation: undefined,
+    loadingMapping: undefined,
+    loadingDiagramText: undefined,
+    finalDiagram: undefined,
+    message: undefined,
+    error: undefined,
+  });
   const [hasUsedFreeGeneration, setHasUsedFreeGeneration] = useState<boolean>(
     () => {
       if (typeof window === "undefined") return false;
@@ -86,9 +95,9 @@ export function useDiagram(username: string, repo: string) {
           throw new Error("No reader available");
         }
 
-        let explanation = "";
-        let mapping = "";
-        let diagram = "";
+        let accExplanation = "";
+        let accMapping = "";
+        let accDiagramText = "";
 
         // Process the stream
         const processStream = async () => {
@@ -139,8 +148,8 @@ export function useDiagram(username: string, repo: string) {
                         break;
                       case "explanation_chunk":
                         if (data.chunk) {
-                          explanation += data.chunk;
-                          setState((prev) => ({ ...prev, explanation }));
+                          accExplanation += data.chunk;
+                          setState((prev) => ({ ...prev, loadingExplanation: accExplanation }));
                         }
                         break;
                       case "mapping_sent":
@@ -159,8 +168,8 @@ export function useDiagram(username: string, repo: string) {
                         break;
                       case "mapping_chunk":
                         if (data.chunk) {
-                          mapping += data.chunk;
-                          setState((prev) => ({ ...prev, mapping }));
+                          accMapping += data.chunk;
+                          setState((prev) => ({ ...prev, loadingMapping: accMapping }));
                         }
                         break;
                       case "diagram_sent":
@@ -179,16 +188,18 @@ export function useDiagram(username: string, repo: string) {
                         break;
                       case "diagram_chunk":
                         if (data.chunk) {
-                          diagram += data.chunk;
-                          setState((prev) => ({ ...prev, diagram }));
+                          accDiagramText += data.chunk;
+                          setState((prev) => ({ ...prev, loadingDiagramText: accDiagramText }));
                         }
                         break;
                       case "complete":
-                        setState({
+                        setState(prev => ({
+                          ...prev, // Preserves accumulated loadingMapping, loadingDiagramText
                           status: "complete",
-                          explanation: data.explanation,
-                          diagram: data.diagram,
-                        });
+                          // Use server's final explanation if sent; otherwise, keep the accumulated one from prev state.
+                          loadingExplanation: data.explanation ?? prev.loadingExplanation,
+                          finalDiagram: data.diagram // Store the final diagram code from server payload
+                        }));
                         const date = await getLastGeneratedDate(username, repo);
                         setLastGenerated(date ?? undefined);
                         if (!hasUsedFreeGeneration) {
@@ -230,24 +241,25 @@ export function useDiagram(username: string, repo: string) {
   );
 
   useEffect(() => {
-    if (state.status === "complete" && state.diagram) {
+    if (state.status === "complete" && state.finalDiagram) {
       // Cache the completed diagram with the usedOwnKey flag
       const hasApiKey = !!localStorage.getItem("openrouter_key");
       void cacheDiagramAndExplanation(
         username,
         repo,
-        state.diagram,
-        state.explanation ?? "No explanation provided",
+        state.finalDiagram,
+        state.loadingExplanation ?? "No explanation provided",
+        state.loadingMapping ?? "No mapping provided",
         hasApiKey,
       );
-      setDiagram(state.diagram);
+      setDiagram(state.finalDiagram);
       void getLastGeneratedDate(username, repo).then((date) =>
         setLastGenerated(date ?? undefined),
       );
     } else if (state.status === "error") {
       setLoading(false);
     }
-  }, [state.status, state.diagram, username, repo, state.explanation]);
+  }, [state.status, state.finalDiagram, username, repo, state.loadingExplanation]);
 
   const getDiagram = useCallback(async () => {
     setLoading(true);
@@ -259,8 +271,16 @@ export function useDiagram(username: string, repo: string) {
       const cached = await getCachedDiagram(username, repo);
       const github_pat = localStorage.getItem("github_pat");
 
-      if (cached) {
-        setDiagram(cached);
+      if (cached?.diagram) { // Check for cached object and diagram property
+        setDiagram(cached.diagram);
+        setState(prev => ({
+          ...prev,
+          status: "complete",
+          loadingExplanation: cached.explanation || "Cached explanation not found.",
+          loadingMapping: cached.mapping ?? "Cached mapping not found.",
+          loadingDiagramText: cached.diagram ?? "Diagram loaded from cache. Textual representation of diagram is not stored with cache.",
+          finalDiagram: cached.diagram
+        }));
         const date = await getLastGeneratedDate(username, repo);
         setLastGenerated(date ?? undefined);
         return;

@@ -27,6 +27,7 @@ export const diagramCache = createTable(
     explanation: varchar("explanation", { length: 10000 })
       .notNull()
       .default("No explanation provided"), // Default explanation to avoid data loss of existing rows
+    mapping: varchar("mapping", { length: 10000 }), // Added mapping column
     createdAt: timestamp("created_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),

@@ -1,13 +1,14 @@
 import {
   cacheDiagramAndExplanation,
   getCachedDiagram,
-  getCachedExplanation,
+  getCachedExplanationAndMapping,
 } from "~/app/_actions/cache";
 
 interface GenerateApiResponse {
   error?: string;
   diagram?: string;
   explanation?: string;
+  mapping?: string;
   token_count?: number;
   requires_api_key?: boolean;
 }
@@ -64,6 +65,7 @@ export async function generateAndCacheDiagram(
       repo,
       data.diagram!,
       data.explanation!,
+      data.mapping!,
     );
     return { diagram: data.diagram };
   } catch (error) {
@@ -80,7 +82,9 @@ export async function modifyAndCacheDiagram(
   try {
     // First get the current diagram from cache
     const currentDiagram = await getCachedDiagram(username, repo);
-    const explanation = await getCachedExplanation(username, repo);
+    const cached = await getCachedExplanationAndMapping(username, repo);
+    const explanation = cached?.explanation;
+    const mapping = cached?.mapping;
 
     if (!currentDiagram || !explanation) {
       return { error: "No existing diagram or explanation found to modify" };
@@ -120,6 +124,7 @@ export async function modifyAndCacheDiagram(
       repo,
       data.diagram!,
       explanation,
+      mapping ?? "",
     );
     return { diagram: data.diagram };
   } catch (error) {

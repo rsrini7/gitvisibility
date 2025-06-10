@@ -38,9 +38,9 @@ interface LoadingProps {
     | "diagram_chunk"
     | "complete"
     | "error";
-  explanation?: string;
-  mapping?: string;
-  diagram?: string;
+  explanation?: string | null;
+  mapping?: string | null;
+  diagram?: string | null;
 }
 
 const getStepNumber = (status: string): number => {
