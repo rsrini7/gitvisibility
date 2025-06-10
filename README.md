@@ -16,6 +16,10 @@ You can also replace `hub` with `diagram` in any Github URL to access its diagra
 - ⚡ **Fast Generation**: Powered by OpenRouter for quick and accurate code maps.
 - 🔄 **Customization**: Modify and regenerate code maps with custom instructions.
 - 🌐 **API Access**: Public API available for integration (WIP)
+- ✨ **Enhanced Diagram Interaction & Data Persistence**:
+  - **Accordion UI**: The diagram page now features an intuitive accordion interface. The first section displays detailed generation progress and textual data (explanation, component mapping, and Mermaid.js diagram text), while the second section presents the final rendered interactive diagram. This allows users to easily access all underlying information alongside the visual representation.
+  - **Comprehensive Caching**: To improve loading times and user experience for revisited repositories, the system now caches not only the diagram but also its corresponding explanation and component mapping data. This ensures all relevant information is readily available and populates both sections of the accordion upon reload.
+  - *(For Developers/Contributors: This involved updating the `diagram_cache` database table to include a `mapping` column to store the new mapping data.)*
 
 ## ⚙️ Tech Stack
 
