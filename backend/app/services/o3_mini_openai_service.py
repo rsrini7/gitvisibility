@@ -13,20 +13,24 @@ load_dotenv()
 class OpenAIo3Service:
     def __init__(self):
         self.default_client = OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            base_url="https://openrouter.ai/api/v1/chat/completions",
+            default_headers={
+                "HTTP-Referer": "http://localhost:3000",
+                "X-Title": "GitVisibility",
+            },
         )
         self.encoding = tiktoken.get_encoding("o200k_base")  # Encoder for OpenAI models
-        self.base_url = "https://api.openai.com/v1/chat/completions"
+        self.base_url = "https://openrouter.ai/api/v1/chat/completions" # For streaming
 
     def call_o3_api(
         self,
         system_prompt: str,
         data: dict,
         api_key: str | None = None,
-        reasoning_effort: Literal["low", "medium", "high"] = "low",
     ) -> str:
         """
-        Makes an API call to OpenAI o3-mini and returns the response.
+        Makes an API call to OpenRouter and returns the response.
 
         Args:
             system_prompt (str): The instruction/system prompt
@@ -40,33 +44,42 @@ class OpenAIo3Service:
         user_message = format_user_message(data)
 
         # Use custom client if API key provided, otherwise use default
-        client = OpenAI(api_key=api_key) if api_key else self.default_client
+        if api_key:
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://openrouter.ai/api/v1/chat/completions",
+                default_headers={
+                    "HTTP-Referer": "http://localhost:3000",
+                    "X-Title": "GitVisibility",
+                },
+            )
+        else:
+            client = self.default_client
 
         try:
             print(
-                f"Making non-streaming API call to o3-mini with API key: {'custom key' if api_key else 'default key'}"
+                f"Making non-streaming API call to deepseek/deepseek-chat:free with API key: {'custom key' if api_key else 'default key'}"
             )
 
             completion = client.chat.completions.create(
-                model="o3-mini",
+                model="deepseek/deepseek-chat:free",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message},
                 ],
                 max_completion_tokens=12000,  # Adjust as needed
                 temperature=0.2,
-                reasoning_effort=reasoning_effort,
             )
 
             print("API call completed successfully")
 
             if completion.choices[0].message.content is None:
-                raise ValueError("No content returned from OpenAI o3-mini")
+                raise ValueError("No content returned from OpenRouter")
 
             return completion.choices[0].message.content
 
         except Exception as e:
-            print(f"Error in OpenAI o3-mini API call: {str(e)}")
+            print(f"Error in OpenRouter API call: {str(e)}")
             raise
 
     async def call_o3_api_stream(
@@ -74,10 +87,9 @@ class OpenAIo3Service:
         system_prompt: str,
         data: dict,
         api_key: str | None = None,
-        reasoning_effort: Literal["low", "medium", "high"] = "low",
     ) -> AsyncGenerator[str, None]:
         """
-        Makes a streaming API call to OpenAI o3-mini and yields the responses.
+        Makes a streaming API call to OpenRouter and yields the responses.
 
         Args:
             system_prompt (str): The instruction/system prompt
@@ -93,6 +105,8 @@ class OpenAIo3Service:
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key or self.default_client.api_key}",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "GitVisibility",
         }
 
         # payload = {
@@ -115,14 +129,13 @@ class OpenAIo3Service:
         # }
 
         payload = {
-            "model": "o3-mini",
+            "model": "deepseek/deepseek-chat:free",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
             "max_completion_tokens": 12000,
             "stream": True,
-            "reasoning_effort": reasoning_effort,
         }
 
         try:
@@ -135,7 +148,7 @@ class OpenAIo3Service:
                         error_text = await response.text()
                         print(f"Error response: {error_text}")
                         raise ValueError(
-                            f"OpenAI API returned status code {response.status}: {error_text}"
+                            f"OpenRouter API returned status code {response.status}: {error_text}"
                         )
 
                     line_count = 0
@@ -167,7 +180,7 @@ class OpenAIo3Service:
 
         except aiohttp.ClientError as e:
             print(f"Connection error: {str(e)}")
-            raise ValueError(f"Failed to connect to OpenAI API: {str(e)}")
+            raise ValueError(f"Failed to connect to OpenRouter API: {str(e)}")
         except Exception as e:
             print(f"Unexpected error in streaming API call: {str(e)}")
             raise

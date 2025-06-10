@@ -13,10 +13,15 @@ load_dotenv()
 class OpenAIO1Service:
     def __init__(self):
         self.default_client = OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            base_url="https://openrouter.ai/api/v1/chat/completions",
+            default_headers={
+                "HTTP-Referer": "http://localhost:3000",
+                "X-Title": "GitVisibility",
+            },
         )
         self.encoding = tiktoken.get_encoding("o200k_base")  # Encoder for OpenAI models
-        self.base_url = "https://api.openai.com/v1/chat/completions"
+        self.base_url = "https://openrouter.ai/api/v1/chat/completions" # For streaming
 
     def call_o1_api(
         self,
@@ -39,15 +44,25 @@ class OpenAIO1Service:
         user_message = format_user_message(data)
 
         # Use custom client if API key provided, otherwise use default
-        client = OpenAI(api_key=api_key) if api_key else self.default_client
+        if api_key:
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://openrouter.ai/api/v1/chat/completions",
+                default_headers={
+                    "HTTP-Referer": "http://localhost:3000",
+                    "X-Title": "GitVisibility",
+                },
+            )
+        else:
+            client = self.default_client
 
         try:
             print(
-                f"Making non-streaming API call to o1-mini with API key: {'custom key' if api_key else 'default key'}"
+                f"Making non-streaming API call to deepseek/deepseek-chat:free with API key: {'custom key' if api_key else 'default key'}"
             )
 
             completion = client.chat.completions.create(
-                model="o1-mini",
+                model="deepseek/deepseek-chat:free",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message},
@@ -90,10 +105,12 @@ class OpenAIO1Service:
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key or self.default_client.api_key}",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "GitVisibility",
         }
 
         payload = {
-            "model": "o1-mini",
+            "model": "deepseek/deepseek-chat:free",
             "messages": [
                 {
                     "role": "user",

@@ -74,7 +74,7 @@ export function useDiagram(username: string, repo: string) {
             username,
             repo,
             instructions,
-            api_key: localStorage.getItem("openai_key") ?? undefined,
+            api_key: localStorage.getItem("openrouter_key") ?? undefined,
             github_pat: githubPat,
           }),
         });
@@ -232,7 +232,7 @@ export function useDiagram(username: string, repo: string) {
   useEffect(() => {
     if (state.status === "complete" && state.diagram) {
       // Cache the completed diagram with the usedOwnKey flag
-      const hasApiKey = !!localStorage.getItem("openai_key");
+      const hasApiKey = !!localStorage.getItem("openrouter_key");
       void cacheDiagramAndExplanation(
         username,
         repo,
@@ -444,7 +444,7 @@ export function useDiagram(username: string, repo: string) {
     setError("");
 
     // Store the key first
-    localStorage.setItem("openai_key", apiKey);
+    localStorage.setItem("openrouter_key", apiKey);
 
     // Then generate diagram using stored key
     const github_pat = localStorage.getItem("github_pat");

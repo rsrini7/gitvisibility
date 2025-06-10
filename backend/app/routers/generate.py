@@ -185,7 +185,7 @@ async def generate_stream(request: Request, body: ApiRequest):
                         "instructions": body.instructions,
                     },
                     api_key=body.api_key,
-                    reasoning_effort="medium",
+                    # reasoning_effort="medium",
                 ):
                     explanation += chunk
                     yield f"data: {json.dumps({'status': 'explanation_chunk', 'chunk': chunk})}\n\n"
@@ -203,7 +203,7 @@ async def generate_stream(request: Request, body: ApiRequest):
                     system_prompt=SYSTEM_SECOND_PROMPT,
                     data={"explanation": explanation, "file_tree": file_tree},
                     api_key=body.api_key,
-                    reasoning_effort="low",
+                    # reasoning_effort="low",
                 ):
                     full_second_response += chunk
                     yield f"data: {json.dumps({'status': 'mapping_chunk', 'chunk': chunk})}\n\n"
@@ -231,7 +231,7 @@ async def generate_stream(request: Request, body: ApiRequest):
                         "instructions": body.instructions,
                     },
                     api_key=body.api_key,
-                    reasoning_effort="low",
+                    # reasoning_effort="low",
                 ):
                     mermaid_code += chunk
                     yield f"data: {json.dumps({'status': 'diagram_chunk', 'chunk': chunk})}\n\n"
