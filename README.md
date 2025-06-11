@@ -8,6 +8,7 @@
 Turn any GitHub repository into an interactive code map for visualization in seconds.
 
 You can also replace `hub` with `diagram` in any Github URL to access its diagram.
+The project emphasizes a clean, responsive, and intuitive user interface, ensuring a seamless experience when navigating and understanding code structures.
 
 ## 🚀 Features
 
