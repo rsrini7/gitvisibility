@@ -180,7 +180,7 @@ export default function Loading({
   const reasoningMessage = renderReasoningMessage();
 
   return (
-    <div className="mx-auto w-full max-w-4xl p-4">
+    <div className="mx-auto w-[80%] p-4">
       <div className="overflow-hidden rounded-xl border-2 border-purple-200 bg-purple-50/30 backdrop-blur-sm">
         <div className="border-b border-purple-100 bg-purple-100/50 px-6 py-3">
           <div className="flex items-center justify-between">

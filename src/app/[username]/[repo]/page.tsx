@@ -57,7 +57,7 @@ export default function Repo() {
   }, [state.status, state.loadingExplanation, state.loadingMapping, state.loadingDiagramText]);
 
   return (
-    <div className="flex flex-col items-center p-4">
+    <div className="flex flex-col items-center px-2 py-4">
       <div className="flex w-full justify-center pt-8">
         <MainCard
           isHome={false}
@@ -74,8 +74,8 @@ export default function Repo() {
           loading={loading}
         />
       </div>
-      <div className="mt-8 flex w-full flex-col items-center gap-8">
-        <Accordion.Root type="multiple" defaultValue={['item-2']} className="w-full max-w-4xl">
+      <div className="mt-8 flex w-[90%] flex-col gap-8">
+        <Accordion.Root type="multiple" defaultValue={['item-2']} className="w-full">
           <Accordion.Item value="item-1" className="bg-white border border-gray-300 rounded-lg mb-3 shadow-md overflow-hidden transition-shadow hover:shadow-lg">
             <Accordion.Header>
               <Accordion.Trigger className="flex items-center justify-between w-full p-4 font-medium text-left group text-lg text-purple-700 hover:bg-purple-50 transition-colors">

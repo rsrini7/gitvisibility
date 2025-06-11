@@ -86,7 +86,7 @@ const MermaidChart = ({ chart, zoomingEnabled = true }: MermaidChartProps) => {
     >
       <div
         key={`${chart}-${zoomingEnabled}`}
-        className={`mermaid h-full ${
+        className={`mermaid h-full flex items-center justify-center ${
           zoomingEnabled ? "rounded-lg border-2 border-black" : ""
         }`}
       >
