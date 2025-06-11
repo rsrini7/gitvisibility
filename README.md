@@ -12,18 +12,18 @@ You can also replace `hub` with `diagram` in any Github URL to access its diagra
 ## 🚀 Features
 
 - 👀 **Instant Code Mapping**: Convert any GitHub repository into a detailed code map showing files, functions, classes, and their relationships.
-- 🎨 **Interactivity**: Click on components to navigate directly to source files and relevant directories/code elements.
+- 🎨 **Interactivity**: Explore code maps with features like clicking components to navigate to source files, and panning & zooming for detailed diagram inspection.
 - ⚡ **Fast Generation**: Powered by OpenRouter for quick and accurate code maps.
 - 🔄 **Customization**: Modify and regenerate code maps with custom instructions.
 - 🌐 **API Access**: Public API available for integration (WIP)
 - ✨ **Enhanced Diagram Interaction & Data Persistence**:
   - **Accordion UI**: The diagram page now features an intuitive accordion interface. The first section displays detailed generation progress and textual data (explanation, component mapping, and Mermaid.js diagram text), while the second section presents the final rendered interactive diagram. This allows users to easily access all underlying information alongside the visual representation.
-  - **Comprehensive Caching**: To improve loading times and user experience for revisited repositories, the system now caches not only the diagram but also its corresponding explanation and component mapping data. This ensures all relevant information is readily available and populates both sections of the accordion upon reload.
+  - **Comprehensive Caching**: To improve loading times and user experience for revisited repositories, the system now caches not only the diagram but also its corresponding explanation and component mapping data. This ensures all relevant information is readily available and populates both sections of the accordion upon reload. The styling of these interactive elements has also been refined for enhanced clarity and user experience.
   - *(For Developers/Contributors: This involved updating the `diagram_cache` database table to include a `mapping` column to store the new mapping data.)*
 
 ## ⚙️ Tech Stack
 
-- **Frontend**: Next.js, TypeScript, Tailwind CSS, ShadCN
+- **Frontend**: Next.js, TypeScript, Tailwind CSS, ShadCN, Radix UI, Lucide Icons
 - **Backend**: FastAPI, Python, Server Actions
 - **Database**: PostgreSQL (with Drizzle ORM)
 - **AI**: OpenRouter
