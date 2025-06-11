@@ -10,6 +10,7 @@ import { ApiKeyButton } from "~/components/api-key-button";
 import { useState, useEffect } from "react";
 import { useStarReminder } from "~/hooks/useStarReminder";
 import * as Accordion from '@radix-ui/react-accordion';
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function Repo() {
   const [zoomingEnabled, setZoomingEnabled] = useState(false);
@@ -75,11 +76,17 @@ export default function Repo() {
       </div>
       <div className="mt-8 flex w-full flex-col items-center gap-8">
         <Accordion.Root type="multiple" defaultValue={['item-2']} className="w-full max-w-4xl">
-          <Accordion.Item value="item-1">
+          <Accordion.Item value="item-1" className="bg-white border border-gray-300 rounded-lg mb-3 shadow-md overflow-hidden transition-shadow hover:shadow-lg">
             <Accordion.Header>
-              <Accordion.Trigger>Generation Progress</Accordion.Trigger>
+              <Accordion.Trigger className="flex items-center justify-between w-full p-4 font-medium text-left group text-lg text-purple-700 hover:bg-purple-50 transition-colors">
+                <span>Generation Progress</span>
+                <div>
+                  <ChevronDown className="group-data-[state=open]:hidden block h-5 w-5 stroke-current" />
+                  <ChevronUp className="group-data-[state=open]:block hidden h-5 w-5 stroke-current" />
+                </div>
+              </Accordion.Trigger>
             </Accordion.Header>
-            <Accordion.Content>
+            <Accordion.Content className="p-6 bg-purple-50/30">
               <Loading
                 cost={cost}
                 status={state.status}
@@ -89,11 +96,17 @@ export default function Repo() {
               />
             </Accordion.Content>
           </Accordion.Item>
-          <Accordion.Item value="item-2">
+          <Accordion.Item value="item-2" className="bg-white border border-gray-300 rounded-lg mb-3 shadow-md overflow-hidden transition-shadow hover:shadow-lg">
             <Accordion.Header>
-              <Accordion.Trigger>Mermaid Diagram</Accordion.Trigger>
+              <Accordion.Trigger className="flex items-center justify-between w-full p-4 font-medium text-left group text-lg text-purple-700 hover:bg-purple-50 transition-colors">
+                <span>Mermaid Diagram</span>
+                <div>
+                  <ChevronDown className="group-data-[state=open]:hidden block h-5 w-5 stroke-current" />
+                  <ChevronUp className="group-data-[state=open]:block hidden h-5 w-5 stroke-current" />
+                </div>
+              </Accordion.Trigger>
             </Accordion.Header>
-            <Accordion.Content>
+            <Accordion.Content className="p-6 bg-purple-50/30">
               {error || state.error ? (
                 <div className="mt-12 text-center">
                   <p className="max-w-4xl text-lg font-medium text-purple-600">

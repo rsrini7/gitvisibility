@@ -139,9 +139,9 @@ export default function MainCard({
                       >
                         <span>Customize Map</span>
                         {activeDropdown === "customize" ? (
-                          <ChevronUp size={20} />
+                          <ChevronUp size={24} className="stroke-black" />
                         ) : (
-                          <ChevronDown size={20} />
+                          <ChevronDown size={24} className="stroke-black" />
                         )}
                       </button>
                     )}
@@ -161,9 +161,9 @@ export default function MainCard({
                       >
                         <span>Export Map</span>
                         {activeDropdown === "export" ? (
-                          <ChevronUp size={20} />
+                          <ChevronUp size={24} className="stroke-black" />
                         ) : (
-                          <ChevronDown size={20} />
+                          <ChevronDown size={24} className="stroke-black" />
                         )}
                       </button>
                     </div>
@@ -187,7 +187,7 @@ export default function MainCard({
                     activeDropdown
                       ? "pointer-events-auto max-h-[500px] opacity-100"
                       : "pointer-events-none max-h-0 opacity-0"
-                  }`}
+                  } mt-2 border border-gray-300 rounded-md p-4 bg-white shadow-lg`}
                 >
                   {activeDropdown === "customize" && (
                     <CustomizationDropdown
