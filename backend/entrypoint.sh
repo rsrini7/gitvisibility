@@ -1,4 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -e
+
+# Convert CRLF to LF if needed (for Windows compatibility)
+case "$(uname)" in
+    *MINGW* | *MSYS* | *CYGWIN*)
+        exec dos2unix < "$0" | bash
+        exit 0
+        ;;
+esac
 
 echo "Current ENVIRONMENT: $ENVIRONMENT"
 

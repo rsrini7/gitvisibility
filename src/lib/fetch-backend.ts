@@ -142,6 +142,7 @@ export async function getCostOfGeneration(
   try {
     const baseUrl =
       process.env.NEXT_PUBLIC_API_DEV_URL ?? "https://api.gitdiagram.com";
+      console.log("Base URL:", baseUrl);
     const url = new URL(`${baseUrl}/generate/cost`);
 
     const response = await fetch(url, {
